@@ -116,7 +116,7 @@ func (a *Modsecurity) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode == 403 {
 		forwardResponse(resp, rw)
 		return
 	}
