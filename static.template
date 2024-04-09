@@ -1,12 +1,12 @@
 entryPoints:
-  web:
-    address: example.local:80
-#  websecure:
-#    address: example.local:443
+${HTTP_COMMENT}  web:
+${HTTP_COMMENT}    address: ${DNS_NAME}:80
+${TLS_COMMENT}  websecure:
+${TLS_COMMENT}    address: ${DNS_NAME}:443
 
 providers:
   file:
-    filename: dynamic_conf.yaml
+    filename: dynamic.yml
     watch: true
 
 experimental:
