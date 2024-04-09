@@ -79,10 +79,12 @@ func (a *Modsecurity) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		if err.Error() == "http: request body too large" {
 			a.logger.Printf("body max limit reached: %s", err.Error())
-			http.Error(rw, "", http.StatusRequestEntityTooLarge)
+			//http.Error(rw, "", http.StatusRequestEntityTooLarge)
+			a.next.ServeHTTP(rw, req)
 		} else {
 			a.logger.Printf("fail to read incoming request: %s", err.Error())
-			http.Error(rw, "", http.StatusBadGateway)
+			//http.Error(rw, "", http.StatusBadGateway)
+			a.next.ServeHTTP(rw, req)
 		}
 		return
 	}
@@ -97,7 +99,8 @@ func (a *Modsecurity) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		a.logger.Printf("fail to prepare forwarded request: %s", err.Error())
-		http.Error(rw, "", http.StatusBadGateway)
+		//http.Error(rw, "", http.StatusBadGateway)
+		a.next.ServeHTTP(rw, req)
 		return
 	}
 
@@ -111,7 +114,8 @@ func (a *Modsecurity) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	resp, err := a.httpClient.Do(proxyReq)
 	if err != nil {
 		a.logger.Printf("fail to send HTTP request to modsec: %s", err.Error())
-		http.Error(rw, "", http.StatusBadGateway)
+		//http.Error(rw, "", http.StatusBadGateway)
+		a.next.ServeHTTP(rw, req)
 		return
 	}
 	defer resp.Body.Close()
