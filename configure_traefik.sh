@@ -19,7 +19,7 @@ usage() {
 }
 
 # Default values
-MODSEC_URL=http://example.local:4444
+MODSEC_URL=http://ls24.wayren.ee:8000
 TLS_PATH="certs"
 BACKEND_URL=http://localhost
 TLS_COMMENT="#"
