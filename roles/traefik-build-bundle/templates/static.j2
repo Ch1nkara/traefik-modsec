@@ -1,8 +1,12 @@
 entryPoints:
-${HTTP_COMMENT}  web:
-${HTTP_COMMENT}    address: ${DNS_NAME}:80
-${TLS_COMMENT}  websecure:
-${TLS_COMMENT}    address: ${DNS_NAME}:443
+{% if enable_http %}
+  web:
+    address: {{ dns_name }}:80
+{% endif %}
+{% if enable_tls %}
+  websecure:
+    address: {{ dns_name }}:443
+{% endif %}
 
 providers:
   file:

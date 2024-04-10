@@ -1,0 +1,3 @@
+---
+bundle_local_path: "traefik_bundle.tar.gz"
+unprivileged_user: www-data

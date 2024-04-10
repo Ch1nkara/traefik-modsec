@@ -1,0 +1,40 @@
+http:
+  routers:
+{% if enable_http %}
+    router_http:
+      entryPoints:
+      - web
+      middlewares : 
+        - washing_machine
+      service: endpoint_website
+      rule: "Host(`{{ dns_name }}`)"
+{% endif %}
+{% if enable_tls %}
+    router_tls:
+      entryPoints:
+      - websecure
+      middlewares : 
+        - washing_machine
+      service: endpoint_website
+      rule: "Host(`{{ dns_name }}`)"
+      tls: {}
+{% endif %}
+
+  middlewares:
+    washing_machine:
+      plugin:
+        modsec_plugin:
+          modSecurityUrl: "{{ centralized_waf_url }}"
+
+  services:
+    endpoint_website:
+      loadBalancer:
+        servers:
+        - url: "{{ backend_url }}"
+
+{% if enable_tls %}
+tls:
+  certificates:
+    - certFile: "certs/tls.crt"
+      keyFile: "certs/tls.key"
+{% endif %}

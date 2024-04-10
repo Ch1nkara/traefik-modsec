@@ -1,0 +1,53 @@
+---
+- name: Scp the bundle to the webserver
+  copy:
+    src: "{{ bundle_local_path }}"
+    dest: "traefik_bundle.tar.gz"
+
+- name: Extract the bundle archive
+  unarchive:
+    src: "traefik_bundle.tar.gz"
+    dest: "/opt"
+    remote_src: true
+
+- name: Copy traefik.service to systemd
+  copy:
+    src: "/opt/traefik_bundle/traefik.service"
+    dest: "/etc/systemd/system/traefik.service"
+    remote_src: true
+
+- name: Change ownership of traefik bundle
+  file:
+    path: "/opt/traefik_bundle"
+    owner: "{{ unprivileged_user }}"
+    group: "{{ unprivileged_user }}"
+    recurse: true
+
+- name: Change permissions to make traefik executable
+  file:
+    path: /opt/traefik_bundle/traefik
+    mode: +x
+
+- name: Set cap_net_bind_service=+ep on /opt/traefik_bundle/traefik
+  capabilities:
+    path: /opt/traefik_bundle/traefik
+    capability: cap_net_bind_service+ep
+    state: present
+
+- name: Systemd daemon reload
+  systemd:
+    daemon_reload: true
+
+- name: Start traefik
+  systemd:
+    name: traefik
+    state: started
+
+- name: Cleaning up files and folders
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "traefik_bundle.tar.gz"
+    - "/opt/traefik_bundle/traefik.service"
+

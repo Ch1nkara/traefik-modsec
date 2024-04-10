@@ -1,0 +1,25 @@
+---
+- name: Build the traefik bundle locally
+  hosts: localhost
+  tasks:
+    - name: Build the traefik bundle
+      include_role:
+        name: traefik-build-bundle
+      vars:
+        dns_name: example.local
+        centralized_waf_url: http://example.local:8000
+        backend_url: http://localhost:8080
+        enable_http: true
+        enable_tls: true
+        tls_crt_path: "files/certs/tls.crt"
+        tls_key_path: "files/certs/tls.key"
+
+- name: Deploy the traefik bundle to the webserver
+  hosts: webserver
+  tasks:
+    - name: deploy traefik bundle
+      include_role: 
+        name: traefik-deploy-bundle
+      vars:
+        bundle_local_path: traefik_bundle.tar.gz
+        unprivileged_user: www-data

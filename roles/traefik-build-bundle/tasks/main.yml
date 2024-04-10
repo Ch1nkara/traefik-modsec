@@ -1,0 +1,69 @@
+---
+- name: Check that at least one of http/tls is enabled
+  fail:
+    msg: "One of enable_tls and enable_http must be set to true"
+  when: enable_tls == false and enable_http == false
+
+- name: Create the bundle directory
+  file:
+    path: "traefik_bundle/certs"
+    state: directory
+
+- name: Build configuration files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: "templates/static.j2"
+      dest: "traefik_bundle/static.yml"
+    - src: "templates/dynamic.j2"
+      dest: "traefik_bundle/dynamic.yml"
+
+- name: Copy files required for traefik bundle
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: "{{ tls_crt_path }}"
+      dest: "traefik_bundle/certs/tls.crt"
+    - src: "{{ tls_key_path }}"
+      dest: "traefik_bundle/certs/tls.key"
+    - src: "files/plugins-local"
+      dest: "traefik_bundle/"
+    - src: "files/traefik.service"
+      dest: "traefik_bundle/traefik.service"
+
+- name: Download traefik
+  get_url:
+    url: "https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_linux_{{ arch }}.tar.gz"
+    dest: "./traefik.tar.gz"
+
+- name: Extract a traefik.tar.gz folder
+  unarchive:
+    src: "traefik.tar.gz"
+    dest: "."
+    remote_src: no
+
+- name: Copy traefik binary to traefik bundle
+  copy:
+    src: "traefik"
+    dest: "traefik_bundle/traefik"
+
+- name: Create the archive bundle
+  archive:
+    dest: "traefik_bundle.tar.gz"
+    path: 
+      - "traefik_bundle"
+
+- name: Cleaning up files and folders
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "CHANGELOG.md"
+    - "LICENSE.md"
+    - "traefik"
+    - "traefik.tar.gz"
+    - "traefik_bundle/"
+
+
