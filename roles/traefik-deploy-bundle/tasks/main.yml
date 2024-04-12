@@ -16,11 +16,17 @@
     dest: "/etc/systemd/system/traefik.service"
     remote_src: true
 
+- name: get unprivileged user name
+  fetch:
+    src: "/opt/traefik_bundle/unprivileged_user.txt"
+    dest: "unprivileged_user.txt"
+    flat: true 
+
 - name: Change ownership of traefik bundle
   file:
     path: "/opt/traefik_bundle"
-    owner: "{{ unprivileged_user }}"
-    group: "{{ unprivileged_user }}"
+    owner: "{{ lookup('ansible.builtin.file', 'unprivileged_user.txt') }}"
+    group: "{{ lookup('ansible.builtin.file', 'unprivileged_user.txt') }}"
     recurse: true
 
 - name: Change permissions to make traefik executable
@@ -51,3 +57,5 @@
     - "traefik_bundle.tar.gz"
     - "/opt/traefik_bundle/traefik.service"
 
+- name: Cleaning up local file
+  local_action: file path="unprivileged_user.txt" state=absent

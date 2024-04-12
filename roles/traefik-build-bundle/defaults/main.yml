@@ -11,3 +11,4 @@ enable_http: true
 enable_tls: true
 tls_crt_path: "files/certs/tls.crt"
 tls_key_path: "files/certs/tls.key"
+unprivileged_user: www-data

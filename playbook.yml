@@ -13,6 +13,7 @@
         enable_tls: true
         tls_crt_path: "files/certs/tls.crt"
         tls_key_path: "files/certs/tls.key"
+        unprivileged_user: www-data
 
 - name: Deploy the traefik bundle to the webserver
   hosts: webserver
@@ -22,4 +23,3 @@
         name: traefik-deploy-bundle
       vars:
         bundle_local_path: traefik_bundle.tar.gz
-        unprivileged_user: www-data
