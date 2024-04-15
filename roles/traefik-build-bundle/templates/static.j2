@@ -1,11 +1,11 @@
 entryPoints:
 {% if enable_http %}
   web:
-    address: {{ dns_name }}:80
+    address: :80
 {% endif %}
 {% if enable_tls %}
   websecure:
-    address: {{ dns_name }}:443
+    address: :443
 {% endif %}
 
 providers:
