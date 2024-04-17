@@ -7,7 +7,7 @@ enable_http: true
 enable_tls: true
 unprivileged_user: www-data
 http_traefik_port: 8880
-https_traefik_port: 8443
+https_traefik_port: 8843
 http_webserver_port: 80
 https_webserver_port: 443
 bundle_local_path: traefik_bundle.tar.gz
