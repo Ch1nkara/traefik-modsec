@@ -1,9 +1,9 @@
 ---
-traefik_version: 2.11.0
+traefik_version: 2.11.2
 arch: amd64
+
 http_port: 80
 https_port: 443
-
 dns_name: example.local
 centralized_waf_url: http://ls24.wayren.ee:8000
 backend_url: http://localhost:8080
