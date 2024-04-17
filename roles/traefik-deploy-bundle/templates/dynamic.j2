@@ -6,7 +6,7 @@ http:
       - web
       middlewares : 
         - washing_machine
-      service: endpoint_website
+      service: endpoint_website_http
       rule: "Host(`{{ inventory_hostname }}`)"
 {% endif %}
 {% if enable_tls %}
@@ -15,7 +15,7 @@ http:
       - websecure
       middlewares : 
         - washing_machine
-      service: endpoint_website
+      service: endpoint_website_https
       rule: "Host(`{{ inventory_hostname }}`)"
       tls: {}
 {% endif %}
@@ -27,10 +27,14 @@ http:
           modSecurityUrl: "{{ centralized_waf_url }}"
 
   services:
-    endpoint_website:
+    endpoint_website_http:
       loadBalancer:
         servers:
-        - url: "{{ backend_url }}"
+        - url: "{{ backend_url_http }}"
+    endpoint_website_https:
+      loadBalancer:
+        servers:
+        - url: "{{ backend_url_https }}"
 
 {% if enable_tls %}
 tls:
