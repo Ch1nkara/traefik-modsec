@@ -4,29 +4,42 @@
     src: "{{ bundle_local_path }}"
     dest: "traefik_bundle.tar.gz"
 
+#- name: Extract the bundle archive
+#  unarchive:
+#    src: "traefik_bundle.tar.gz"
+#    dest: "/opt"
+#    remote_src: true
+# Changed to shell due to unstability
 - name: Extract the bundle archive
-  unarchive:
-    src: "traefik_bundle.tar.gz"
-    dest: "/opt"
-    remote_src: true
+  shell: cd /opt && tar xvf ~/traefik_bundle.tar.gz && cd ~
 
 - name: Copy traefik.service to systemd
-  copy:
-    src: "/opt/traefik_bundle/traefik.service"
+  template:
+    src: "templates/traefik_service.j2"
     dest: "/etc/systemd/system/traefik.service"
+
+- name: Change the hostname in dynamic config
+  replace:
+    path: /opt/traefik_bundle/dynamic.yml
+    regexp: "HOSTNAME_CHANGEME"
+    replace: "{{ inventory_hostname }}"
+
+- name: Copy certificates to traefik
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
     remote_src: true
-
-- name: get unprivileged user name
-  fetch:
-    src: "/opt/traefik_bundle/unprivileged_user.txt"
-    dest: "unprivileged_user.txt"
-    flat: true 
-
+  loop:
+    - src: "/srv/certs/{{ inventory_hostname }}_cert.crt"
+      dest: "/opt/traefik_bundle/certs/tls.crt"
+    - src: "/srv/certs/{{ inventory_hostname }}_key.crt"
+      dest: "/opt/traefik_bundle/certs/tls.key"
+    
 - name: Change ownership of traefik bundle
   file:
     path: "/opt/traefik_bundle"
-    owner: "{{ lookup('ansible.builtin.file', 'unprivileged_user.txt') }}"
-    group: "{{ lookup('ansible.builtin.file', 'unprivileged_user.txt') }}"
+    owner: "{{ unprivileged_user }}"
+    group: "{{ unprivileged_user }}"
     recurse: true
 
 - name: Change permissions to make traefik executable
@@ -34,20 +47,84 @@
     path: /opt/traefik_bundle/traefik
     mode: +x
 
-- name: Set cap_net_bind_service=+ep on /opt/traefik_bundle/traefik
-  capabilities:
-    path: /opt/traefik_bundle/traefik
-    capability: cap_net_bind_service+ep
-    state: present
-
-- name: Systemd daemon reload
+- name: reload daemons
   systemd:
     daemon_reload: true
 
 - name: Start traefik
   systemd:
-    name: traefik
-    state: started
+      name: traefik
+      state: started
+# Dirty fallback way to start traefik
+#- name: Start traefik
+#  shell: cd /opt/traefik_bundle && nohup su www-data -s /bin/bash -c "/opt/traefik_bundle/traefik --configFile static.yml" >log.txt 2>&1 &
+
+- name: hopefully prints ip
+  debug:
+    msg: "Ip is :{{ ansible_default_ipv6.address }} and stats all"
+
+- name: Ip tables hijacking :80 -> traefik_http
+  shell: "iptables -t nat -A PREROUTING -p tcp --dport 80 -d {{ ansible_default_ipv4.address }} -j DNAT --to {{ ansible_default_ipv4.address }}:{{ http_traefik_port }}"
+
+- name: Ip tables hijacking :443 -> traefik_https
+  shell: "iptables -t nat -A PREROUTING -p tcp --dport 443 -d {{ ansible_default_ipv4.address }} -j DNAT --to {{ ansible_default_ipv4.address }}:{{ https_traefik_port }}"
+
+- name: Ip tables hijacking ipv6:80 -> traefik_http
+  shell: "ip6tables -t nat -A PREROUTING -p tcp --dport 80 -d {{ ansible_default_ipv6.address }} -j DNAT --to {{ ansible_default_ipv6.address }}:{{ http_traefik_port }}"
+
+- name: Ip tables hijacking :443 -> traefik_https
+  shell: "ip6tables -t nat -A PREROUTING -p tcp --dport 443 -d {{ ansible_default_ipv6.address }} -j DNAT --to {{ ansible_default_ipv6.address }}:{{ https_traefik_port }}"
+
+# Not working, don't have time to investigate
+#- name: Ip tables hijacking :80 -> traefik_http
+#  iptables:
+#    table: nat
+#    chain: PREROUTING
+#    protocol: tcp
+#    source_port: 80
+#    source: "{{ ansible_default_ipv4.address }}"
+#    ctstate: DNAT
+#    destination: "{{ ansible_default_ipv4.address }}"
+#    destination_port: "{{ http_traefik_port }}"
+#  become: yes
+#
+#- name: Ip tables hijacking :443 -> traefik_https
+#  iptables:
+#    table: nat
+#    chain: PREROUTING
+#    protocol: tcp
+#    source_port: 443
+#    source: "{{ ansible_default_ipv4.address }}"
+#    ctstate: DNAT
+#    destination: "{{ ansible_default_ipv4.address }}"
+#    destination_port: "{{ https_traefik_port }}"
+#  become: yes
+#
+#- name: Ip tables hijacking ipv6:80 -> traefik_http
+#  iptables:
+#    table: nat
+#    chain: PREROUTING
+#    protocol: tcp
+#    source_port: 80
+#    source: "{{ ansible_default_ipv6.address }}"
+#    ctstate: DNAT
+#    destination: "{{ ansible_default_ipv6.address }}"
+#    destination_port: "{{ http_traefik_port }}"
+#    ip_version: ipv6
+#  become: yes
+#
+#- name: Ip tables hijacking ipv6:443 -> traefik_https
+#  iptables:
+#    table: nat
+#    chain: PREROUTING
+#    protocol: tcp
+#    source_port: 443
+#    source: "{{ ansible_default_ipv6.address }}"
+#    ctstate: DNAT
+#    destination: "{{ ansible_default_ipv6.address }}"
+#    destination_port: "{{ https_traefik_port }}"
+#    ip_version: ipv6
+#  become: yes
 
 - name: Cleaning up files and folders
   file:

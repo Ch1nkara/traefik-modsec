@@ -18,10 +18,6 @@
       dest: "traefik_bundle/static.yml"
     - src: "templates/dynamic.j2"
       dest: "traefik_bundle/dynamic.yml"
-    - src: "templates/traefik_service.j2"
-      dest: "traefik_bundle/traefik.service"
-    - src: "templates/unprivileged_user.j2"
-      dest: "traefik_bundle/unprivileged_user.txt"
 
 - name: Copy files required for traefik bundle
   copy:
