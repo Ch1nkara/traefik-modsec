@@ -6,13 +6,8 @@
       include_role:
         name: traefik-build-bundle
       vars:
-        http_port: 8880
-        https_port: 8843
-        dns_name: HOSTNAME_CHANGEME
-        centralized_waf_url: http://arkime.12.berylia.org:4444
-        backend_url: http://localhost
-        enable_http: true
-        enable_tls: true
+        traefik_version: 2.11.2
+        arch: amd64
 
 - name: Deploy the traefik bundle to the webserver
   hosts: webserver
@@ -21,7 +16,13 @@
       include_role: 
         name: traefik-deploy-bundle
       vars:
-        bundle_local_path: traefik_bundle.tar.gz
+        centralized_waf_url: http://arkime.12.berylia.org:4444
+        backend_url: http://localhost
+        enable_http: true
+        enable_tls: true
         unprivileged_user: www-data
         http_traefik_port: 8880
-        https_traefik_port: 8843
+        https_traefik_port: 8443
+        http_webserver_port: 80
+        https_webserver_port: 443
+        bundle_local_path: traefik_bundle.tar.gz

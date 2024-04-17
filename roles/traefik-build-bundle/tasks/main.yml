@@ -1,33 +1,16 @@
 ---
-- name: Check that at least one of http/tls is enabled
-  fail:
-    msg: "One of enable_tls and enable_http must be set to true"
-  when: enable_tls == false and enable_http == false
-
 - name: Create the bundle directory
   file:
     path: "traefik_bundle/certs"
     state: directory
-
-- name: Build configuration files
-  template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-  loop:
-    - src: "templates/static.j2"
-      dest: "traefik_bundle/static.yml"
-    - src: "templates/dynamic.j2"
-      dest: "traefik_bundle/dynamic.yml"
 
 - name: Copy files required for traefik bundle
   copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
   loop:
-    - src: "{{ tls_crt_path }}"
-      dest: "traefik_bundle/certs/tls.crt"
-    - src: "{{ tls_key_path }}"
-      dest: "traefik_bundle/certs/tls.key"
+    - src: "files/certs"
+      dest: "traefik_bundle/"
     - src: "files/plugins-local"
       dest: "traefik_bundle/"
 

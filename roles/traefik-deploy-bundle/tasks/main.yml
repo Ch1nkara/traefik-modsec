@@ -1,4 +1,9 @@
 ---
+- name: Check that at least one of http/tls is enabled
+  fail:
+    msg: "One of enable_tls and enable_http must be set to true"
+  when: enable_tls == false and enable_http == false
+
 - name: Scp the bundle to the webserver
   copy:
     src: "{{ bundle_local_path }}"
@@ -13,28 +18,18 @@
 - name: Extract the bundle archive
   shell: cd /opt && tar xvf ~/traefik_bundle.tar.gz && cd ~
 
-- name: Copy traefik.service to systemd
+- name: upload templates conf files
   template:
-    src: "templates/traefik_service.j2"
-    dest: "/etc/systemd/system/traefik.service"
-
-- name: Change the hostname in dynamic config
-  replace:
-    path: /opt/traefik_bundle/dynamic.yml
-    regexp: "HOSTNAME_CHANGEME"
-    replace: "{{ inventory_hostname }}"
-
-- name: Copy certificates to traefik
-  copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
-    remote_src: true
   loop:
-    - src: "/srv/certs/{{ inventory_hostname }}_cert.crt"
-      dest: "/opt/traefik_bundle/certs/tls.crt"
-    - src: "/srv/certs/{{ inventory_hostname }}_key.crt"
-      dest: "/opt/traefik_bundle/certs/tls.key"
-    
+    - src: "templates/traefik_service.j2"
+      dest: "/etc/systemd/system/traefik.service"
+    - src: "templates/static.j2"
+      dest: "/opt/traefik_bundle/static.yml"
+    - src: "templates/dynamic.j2"
+      dest: "/opt/traefik_bundle/dynamic.yml"
+ 
 - name: Change ownership of traefik bundle
   file:
     path: "/opt/traefik_bundle"
@@ -59,21 +54,17 @@
 #- name: Start traefik
 #  shell: cd /opt/traefik_bundle && nohup su www-data -s /bin/bash -c "/opt/traefik_bundle/traefik --configFile static.yml" >log.txt 2>&1 &
 
-- name: hopefully prints ip
-  debug:
-    msg: "Ip is :{{ ansible_default_ipv6.address }} and stats all"
+- name: Ip tables hijacking http -> traefik_http
+  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ http_webserver_port }} -j DNAT --to  :{{ http_traefik_port }}"
 
-- name: Ip tables hijacking :80 -> traefik_http
-  shell: "iptables -t nat -A PREROUTING -p tcp --dport 80 -d {{ ansible_default_ipv4.address }} -j DNAT --to {{ ansible_default_ipv4.address }}:{{ http_traefik_port }}"
+- name: Ip tables hijacking https -> traefik_https
+  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ https_webserver_port }} -j DNAT --to  :{{ https_traefik_port }}"
 
-- name: Ip tables hijacking :443 -> traefik_https
-  shell: "iptables -t nat -A PREROUTING -p tcp --dport 443 -d {{ ansible_default_ipv4.address }} -j DNAT --to {{ ansible_default_ipv4.address }}:{{ https_traefik_port }}"
+- name: Ip tables hijacking ipv6_http -> traefik_http
+  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ http_webserver_port }} -j DNAT --to  :{{ http_traefik_port }}"
 
-- name: Ip tables hijacking ipv6:80 -> traefik_http
-  shell: "ip6tables -t nat -A PREROUTING -p tcp --dport 80 -d {{ ansible_default_ipv6.address }} -j DNAT --to {{ ansible_default_ipv6.address }}:{{ http_traefik_port }}"
-
-- name: Ip tables hijacking :443 -> traefik_https
-  shell: "ip6tables -t nat -A PREROUTING -p tcp --dport 443 -d {{ ansible_default_ipv6.address }} -j DNAT --to {{ ansible_default_ipv6.address }}:{{ https_traefik_port }}"
+- name: Ip tables hijacking v6_https -> traefik_https
+  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ https_webserver_port }} -j DNAT --to  :{{ https_traefik_port }}"
 
 # Not working, don't have time to investigate
 #- name: Ip tables hijacking :80 -> traefik_http
@@ -132,7 +123,3 @@
     state: absent
   loop:
     - "traefik_bundle.tar.gz"
-    - "/opt/traefik_bundle/traefik.service"
-
-- name: Cleaning up local file
-  local_action: file path="unprivileged_user.txt" state=absent

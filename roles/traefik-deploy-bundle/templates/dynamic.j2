@@ -7,7 +7,7 @@ http:
       middlewares : 
         - washing_machine
       service: endpoint_website
-      rule: "Host(`{{ dns_name }}`)"
+      rule: "Host(`{{ inventory_hostname }}`)"
 {% endif %}
 {% if enable_tls %}
     router_tls:
@@ -16,7 +16,7 @@ http:
       middlewares : 
         - washing_machine
       service: endpoint_website
-      rule: "Host(`{{ dns_name }}`)"
+      rule: "Host(`{{ inventory_hostname }}`)"
       tls: {}
 {% endif %}
 
@@ -35,6 +35,6 @@ http:
 {% if enable_tls %}
 tls:
   certificates:
-    - certFile: "certs/tls.crt"
-      keyFile: "certs/tls.key"
+    - certFile: "/srv/certs/{{ inventory_hostname }}_cert.crt"
+      keyFile: "/srv/certs/{{ inventory_hostname }}_key.crt"
 {% endif %}

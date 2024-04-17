@@ -1,11 +1,11 @@
 entryPoints:
 {% if enable_http %}
   web:
-    address: :{{ http_port }}
+    address: :{{ http_traefik_port }}
 {% endif %}
 {% if enable_tls %}
   websecure:
-    address: :{{ https_port }}
+    address: :{{ https_traefik_port }}
 {% endif %}
 
 providers:
