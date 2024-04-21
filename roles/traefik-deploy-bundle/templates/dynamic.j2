@@ -1,25 +1,52 @@
+{% set rules = [] %}
+  {% set host_rules = [] %}
+  {% for server in hostvars[inventory_hostname].svr %}
+    {% if server.server_name is defined %}
+      {% set _ = host_rules.append("Host(`" ~ server.server_name ~ "`)") %}
+    {% endif %}
+  {% endfor %}
+  {% if host_rules %}
+    {% set _ = rules.append(host_rules | join(' || ')) %}
+  {% else %}
+    {% set _ = rules.append("Host(`" ~ inventory_hostname ~ "`)") %}
+  {% endif %}
+
+
+{% set http_ports = [] %}
+{% set https_ports = [] %}
+{% for server in hostvars[inventory_hostname].svr %}
+  {% if server.http_port is defined and server.http_port not in http_ports %}
+    {% set _ = http_ports.append(server.http_port) %}
+  {% endif %}
+  {% if server.https_port is defined and server.https_port not in https_ports %}
+    {% set _ = https_ports.append(server.https_port) %}
+  {% endif %}
+{% endfor %}
+
+
 http:
   routers:
-{% if enable_http %}
-    router_http:
-      entryPoints:
-      - web
-      middlewares : 
-        - washing_machine
-      service: endpoint_website_http
-      rule: "Host(`{{ inventory_hostname }}`)"
-{% endif %}
-{% if enable_tls %}
-    router_tls:
-      entryPoints:
-      - websecure
-      middlewares : 
-        - washing_machine
-      service: endpoint_website_https
-      rule: "Host(`{{ inventory_hostname }}`)"
-      tls: {}
-{% endif %}
 
+{% for server in hostvars[inventory_hostname].svr %}
+{% if server.http_port is defined %}
+    router_http_{{ server.name }}_{{ server.http_port }}:
+      entryPoints:
+      - web_{{ server.name }}_{{ server.http_port }}
+      middlewares: 
+        - washing_machine
+      service: endpoint_website_http_{{ server.name }}_{{ server.http_port }}
+      rule: "Host(`{{ server.server_name }}`)"
+{% endif %}
+{% if server.https_port is defined %}
+    router_https_{{ server.name }}_{{ server.https_port }}:
+      entryPoints:
+      - websecure_{{ server.name }}_{{ server.https_port }}
+      middlewares: 
+        - washing_machine
+      service: endpoint_website_https_{{ server.name }}_{{ server.https_port }}
+      rule: "Host(`{{ server.server_name }}`)"
+{% endif %}
+{% endfor %}
   middlewares:
     washing_machine:
       plugin:
@@ -27,16 +54,22 @@ http:
           modSecurityUrl: "{{ centralized_waf_url }}"
 
   services:
-    endpoint_website_http:
+{% for server in hostvars[inventory_hostname].svr %}
+{% if server.http_port is defined %}
+    endpoint_website_http_{{ server.name }}_{{ server.http_port }}:
       loadBalancer:
         servers:
-        - url: "{{ backend_url_http }}"
-    endpoint_website_https:
+        - url: "http://{{ server.server_name }}"
+{% endif %}
+{% if server.https_port is defined %}
+    endpoint_website_https_{{ server.name }}_{{ server.https_port }}:
       loadBalancer:
         servers:
-        - url: "{{ backend_url_https }}"
+        - url: "https://{{ server.server_name }}"
+{% endif %}
+{% endfor %}
 
-{% if enable_tls %}
+{% if https_ports %}
 tls:
   certificates:
     - certFile: "/srv/certs/{{ inventory_hostname }}_cert.crt"

@@ -1,9 +1,4 @@
 ---
-- name: Check that at least one of http/tls is enabled
-  fail:
-    msg: "One of enable_tls and enable_http must be set to true"
-  when: enable_tls == false and enable_http == false
-
 - name: Scp the bundle to the webserver
   copy:
     src: "{{ bundle_local_path }}"
@@ -17,6 +12,17 @@
 # Changed to shell due to unstability
 - name: Extract the bundle archive
   shell: cd /opt && tar xvf ~/traefik_bundle.tar.gz && cd ~
+
+- name: debug
+  debug:
+    var: svr
+
+
+- name: handle default values
+  set_fact:
+    svr: "{{ svr | json_query('[].{name:name, http_traefik_port:http_traefik_port || `8880`, https_traefik_port:https_traefik_port || `8843`, server_name:server_name || `_`, https_port: https_port || `443`, http_port: http_port || `80`}') }}"
+
+
 
 - name: upload templates conf files
   template:
@@ -54,17 +60,48 @@
 #- name: Start traefik
 #  shell: cd /opt/traefik_bundle && nohup su www-data -s /bin/bash -c "/opt/traefik_bundle/traefik --configFile static.yml" >log.txt 2>&1 &
 
+- name: Extract unique http_ports
+  set_fact:
+    unique_http_ports: "{{ svr | map(attribute='http_port') | list | unique }}"
+
+- name: Extract unique https_ports
+  set_fact:
+    unique_https_ports: "{{ svr | map(attribute='https_port') | list | unique }}"
+
 - name: Ip tables hijacking http -> traefik_http
-  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ http_webserver_port }} -j DNAT --to  :{{ http_traefik_port }}"
+  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo --dport {{ item }} -j DNAT --to  :{{ hostvars[inventory_hostname]['svr'] | selectattr('http_port', 'equalto', item) | map(attribute='http_traefik_port') | first }}"
+  loop: "{{ unique_http_ports }}"
 
 - name: Ip tables hijacking https -> traefik_https
-  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ https_webserver_port }} -j DNAT --to  :{{ https_traefik_port }}"
+  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo --dport {{ item }} -j DNAT --to  :{{ hostvars[inventory_hostname]['svr'] | selectattr('https_port', 'equalto', item) | map(attribute='https_traefik_port') | first }}"
+  loop: "{{ unique_https_ports }}"
 
-- name: Ip tables hijacking ipv6_http -> traefik_http
-  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ http_webserver_port }} -j DNAT --to  :{{ http_traefik_port }}"
+- name: Ip tables hijacking http -> traefik_http
+  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo --dport {{ item }} -j DNAT --to  :{{ hostvars[inventory_hostname]['svr'] | selectattr('http_port', 'equalto', item) | map(attribute='http_traefik_port') | first }}"
+  loop: "{{ unique_http_ports }}"
 
-- name: Ip tables hijacking v6_https -> traefik_https
-  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ https_webserver_port }} -j DNAT --to  :{{ https_traefik_port }}"
+- name: Ip tables hijacking https -> traefik_https
+  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo --dport {{ item }} -j DNAT --to  :{{ hostvars[inventory_hostname]['svr'] | selectattr('https_port', 'equalto', item) | map(attribute='https_traefik_port') | first }}"
+  loop: "{{ unique_https_ports }}"
+
+
+
+
+#- name: Ip tables hijacking http -> traefik_http
+#  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ item.http_port }} -j DNAT --to  :{{ item.http_traefik_port }}"
+#  loop: "{{ svr }}"
+  
+#- name: Ip tables hijacking https -> traefik_https
+#  shell: "iptables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ item.https_port }} -j DNAT --to  :{{ item.https_traefik_port }}"
+#  loop: "{{ svr }}"
+
+#- name: Ip tables hijacking ipv6_http -> traefik_http
+#  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ item.http_port }} -j DNAT --to  :{{ item.http_traefik_port }}"
+#  loop: "{{ svr }}"
+
+#- name: Ip tables hijacking v6_https -> traefik_https
+#  shell: "ip6tables -t nat -A PREROUTING -p tcp '!' -i lo  --dport {{ item.https_port }} -j DNAT --to  :{{ item.https_traefik_port }}"
+#  loop: "{{ svr }}"
 
 # Not working, don't have time to investigate
 #- name: Ip tables hijacking :80 -> traefik_http
