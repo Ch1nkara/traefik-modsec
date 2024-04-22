@@ -13,6 +13,12 @@ __prerequistes__:
  - only return WAF response if http response code is 418 instead of >400
  - if an error occur during the plugin execution, pass the traffic instead of blocking it
 
+## Example inventory in ls24 format: inv-example
+
+ - uses definition of local VMs mimicking the various configurations
+ - run it with `ansible-playbook -i ./inv-example --limit  test_vm_ipv4  playbook.yml`
+ - non standard (pure 80/443 single service) sites are added in host_vars
+
 ## Example using Wayren exercice
 
 ### Summary
