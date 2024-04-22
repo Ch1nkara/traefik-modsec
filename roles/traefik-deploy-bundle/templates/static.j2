@@ -1,12 +1,35 @@
+{% set http_ports = [] %}
+{% set https_ports = [] %}
+{% set traefik_ports = dict() %}
+{% for server in hostvars[inventory_hostname].svr %}
+  {% if server.http_port is defined and server.http_port not in http_ports %}
+    {% set _ = http_ports.append(server.http_port) %}
+    {% if server.http_traefik_port is defined %}
+      {% set _ = traefik_ports.update({server.http_port: server.http_traefik_port}) %}
+    {% else %}
+      {% set _ = traefik_ports.update({server.http_port: http_traefik_port}) %}
+    {% endif %}
+  {% endif %}
+  {% if server.https_port is defined and server.https_port not in https_ports %}
+    {% set _ = https_ports.append(server.https_port) %}
+    {% if server.https_traefik_port is defined %}
+      {% set _ = traefik_ports.update({server.https_port: server.https_traefik_port}) %}
+    {% else %}
+      {% set _ = traefik_ports.update({server.https_port: https_traefik_port}) %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+
 entryPoints:
-{% if enable_http %}
-  web:
-    address: :{{ http_traefik_port }}
-{% endif %}
-{% if enable_tls %}
-  websecure:
-    address: :{{ https_traefik_port }}
-{% endif %}
+{% for p in http_ports %}
+  web_{{ p }}:
+    address: :{{ traefik_ports[p] }}
+{% endfor %}
+{% for p in https_ports %}
+  websecure_{{ p }}:
+    address: :{{ traefik_ports[p] }}
+{% endfor %}
 
 providers:
   file:
