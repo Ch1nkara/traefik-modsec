@@ -1,4 +1,8 @@
 ---
+- name: Extract FQDN from the modified hostname
+  set_fact:
+    real_fqdn: "{{ inventory_hostname | regex_replace('_ipv4', '') }}"
+
 - name: Scp the bundle to the webserver
   copy:
     src: "{{ bundle_local_path }}"
@@ -7,14 +11,38 @@
 - name: Extract the bundle archive
   shell: cd /opt && tar xvf ~/traefik_bundle.tar.gz && cd ~
 
+- name: Set svr to a dict with the host's FQDN if not already defined
+  set_fact:
+    svr: "{{ svr | default([{'name': ansible_hostname, 'server_name': real_fqdn}]) }}"
+  when: svr is not defined
+
 - name: debug
   debug:
     var: svr
 
 
-- name: handle default values
+#- name: handle default values
+#  set_fact:
+#    svr: "{{ svr | json_query('[].{name:name || `'${ansible_hostname}'`, http_traefik_port:http_traefik_port || `8880`, https_trae#fik_port:https_traefik_port || `8843`, server_name:server_name || `'${real_fqdn}'`, https_port: https_port || `443`, http_port: http_port || `80`}') }}"
+
+- name: Handle default values for array of dictionaries
   set_fact:
-    svr: "{{ svr | json_query('[].{name:name, http_traefik_port:http_traefik_port || `8880`, https_traefik_port:https_traefik_port || `8843`, server_name:server_name || `_`, https_port: https_port || `443`, http_port: http_port || `80`}') }}"
+    svr: "{{ svr | default([]) | json_query(query) }}"
+  vars:
+    query: >-
+      [?not_null(@)].{
+        name: name || `'${ansible_hostname}'`,
+        http_traefik_port: http_traefik_port || `'8880'`,
+        https_traefik_port: https_traefik_port || `'8843'`,
+        server_name: server_name || `'${real_fqdn}'`,
+        https_port: https_port || `'443'`,
+        http_port: http_port || `'80'`
+      }
+
+
+- name: debug
+  debug:
+    var: svr
 
 
 
