@@ -10,7 +10,7 @@
         arch: amd64
 
 - name: Deploy the traefik bundle to the webserver
-  hosts: webserver
+  hosts: "{{ ansible_limit | default(omit) }}"
   tasks:
     - name: deploy traefik bundle
       include_role: 
