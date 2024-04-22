@@ -27,26 +27,26 @@
 http:
   routers:
 
-{% for server in hostvars[inventory_hostname].svr %}
-{% if server.http_port is defined %}
-    router_http_{{ server.name }}_{{ server.http_port }}:
+{% for p in http_ports %}
+    router_http_{{ p }}:
       entryPoints:
-      - web_{{ server.name }}_{{ server.http_port }}
+      - web_{{ p }}
       middlewares: 
         - washing_machine
-      service: endpoint_website_http_{{ server.name }}_{{ server.http_port }}
-      rule: "Host(`{{ server.server_name }}`)"
-{% endif %}
-{% if server.https_port is defined %}
-    router_https_{{ server.name }}_{{ server.https_port }}:
-      entryPoints:
-      - websecure_{{ server.name }}_{{ server.https_port }}
-      middlewares: 
-        - washing_machine
-      service: endpoint_website_https_{{ server.name }}_{{ server.https_port }}
-      rule: "Host(`{{ server.server_name }}`)"
-{% endif %}
+      service: endpoint_website_http_{{ p }}
+      rule: "{{ rules | join(' || ') }}"
 {% endfor %}
+{% for p in https_ports %}
+    router_tls_{{ p }}:
+      entryPoints:
+      - websecure_{{ p }}
+      middlewares: 
+        - washing_machine
+      service: endpoint_website_https_{{ p }}
+      rule: "{{ rules | join(' || ') }}"
+      tls: {}
+{% endfor %}
+
   middlewares:
     washing_machine:
       plugin:
@@ -54,19 +54,17 @@ http:
           modSecurityUrl: "{{ centralized_waf_url }}"
 
   services:
-{% for server in hostvars[inventory_hostname].svr %}
-{% if server.http_port is defined %}
-    endpoint_website_http_{{ server.name }}_{{ server.http_port }}:
+{% for p in http_ports %}
+    endpoint_website_http_{{ p }}:
       loadBalancer:
         servers:
-        - url: "http://{{ server.server_name }}"
-{% endif %}
-{% if server.https_port is defined %}
-    endpoint_website_https_{{ server.name }}_{{ server.https_port }}:
+        - url: "{{ backend_url_http }}"
+{% endfor %}
+{% for p in https_ports %}
+    endpoint_website_https_{{ p }}:
       loadBalancer:
         servers:
-        - url: "https://{{ server.server_name }}"
-{% endif %}
+        - url: "{{ backend_url_https }}"
 {% endfor %}
 
 {% if https_ports %}
