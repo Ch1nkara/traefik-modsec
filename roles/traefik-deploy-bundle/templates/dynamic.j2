@@ -58,13 +58,13 @@ http:
     endpoint_website_http_{{ p }}:
       loadBalancer:
         servers:
-        - url: "{{ backend_url_http }}"
+        - url: "http://localhost:{{ p }}"
 {% endfor %}
 {% for p in https_ports %}
     endpoint_website_https_{{ p }}:
       loadBalancer:
         servers:
-        - url: "{{ backend_url_https }}"
+        - url: "https://localhost:{{ p }}"
 {% endfor %}
 
 {% if https_ports %}
