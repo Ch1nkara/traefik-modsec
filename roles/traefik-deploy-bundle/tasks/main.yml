@@ -1,7 +1,7 @@
 ---
 - name: Extract FQDN from the modified hostname
   set_fact:
-    real_fqdn: "{{ inventory_hostname | regex_replace('_ipv4', '') }}"
+    real_fqdn: "{{ inventory_hostname | regex_replace('_ipv[46]', '') }}"
 
 - name: Scp the bundle to the webserver
   copy:
