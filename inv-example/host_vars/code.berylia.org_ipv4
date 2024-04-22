@@ -1,0 +1,9 @@
+svr:
+  - name: access
+    server_name: "access.berylia.org"
+  - name: code
+    server_name: "code.berylia.org"
+    http_port: 8080
+    https_port: 8443
+    http_traefik_port: 8980
+    https_traefik_port: 8943
