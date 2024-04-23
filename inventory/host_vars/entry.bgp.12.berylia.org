@@ -1,0 +1,6 @@
+svr:
+- name: entry
+  server_name: "entry.bgp.12.berylia.org"
+- name: entry-security
+  server_name: "entry-security.bgp.12.berylia.org"
+

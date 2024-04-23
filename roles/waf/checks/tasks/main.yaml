@@ -1,0 +1,23 @@
+---
+- name: Test all local WEB services for WAF
+  when: not disable_waf_checks
+  block:
+    - name: CHECK WAF (https)
+      ansible.builtin.uri:
+        url: "https://{{ web_services_hostname }}:{{ item }}/?{{ waf_trigger_word }}"
+        method: GET
+        validate_certs: false
+      register: "check_resp"
+      failed_when: false
+      changed_when: "check_resp.status != waf_trigger_statuscode"
+      loop: "{{ web_services_https }}"
+
+    - name: CHECK WAF (http)
+      ansible.builtin.uri:
+        url: "http://{{ web_services_hostname }}:{{ item }}/?{{ waf_trigger_word }}"
+        method: GET
+        validate_certs: false
+      register: "check_resp"
+      failed_when: false
+      changed_when: "check_resp.status != waf_trigger_statuscode"
+      loop: "{{ web_services_http }}"

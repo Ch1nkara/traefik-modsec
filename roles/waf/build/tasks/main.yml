@@ -1,0 +1,50 @@
+---
+- name: Create the bundle directory
+  file:
+    path: "traefik_bundle/certs"
+    state: directory
+
+- name: Copy files required for traefik bundle
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: "files/certs"
+      dest: "traefik_bundle/"
+    - src: "files/plugins-local"
+      dest: "traefik_bundle/"
+
+- name: Download traefik
+  get_url:
+    url: "https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_linux_{{ arch }}.tar.gz"
+    dest: "./traefik.tar.gz"
+
+- name: Extract a traefik.tar.gz folder
+  unarchive:
+    src: "traefik.tar.gz"
+    dest: "."
+    remote_src: no
+
+- name: Copy traefik binary to traefik bundle
+  copy:
+    src: "traefik"
+    dest: "traefik_bundle/traefik"
+
+- name: Create the archive bundle
+  archive:
+    dest: "traefik_bundle.tar.gz"
+    path: 
+      - "traefik_bundle"
+
+- name: Cleaning up files and folders
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "CHANGELOG.md"
+    - "LICENSE.md"
+    - "traefik"
+    - "traefik.tar.gz"
+    - "traefik_bundle/"
+
+

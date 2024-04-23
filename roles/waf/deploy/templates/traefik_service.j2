@@ -1,0 +1,14 @@
+[Unit]
+Description=Traefik HTTP reverse proxy
+After=network.target
+
+[Service]
+User={{ unprivileged_user }}
+Group={{ unprivileged_user }}
+WorkingDirectory=/opt/traefik_bundle
+ExecStart=/opt/traefik_bundle/traefik --configFile static.yml
+StandardOutput=file:/opt/traefik_bundle/traefik.log
+StandardError=file:/opt/traefik_bundle/traefik.log
+
+[Install]
+WantedBy=multi-user.target

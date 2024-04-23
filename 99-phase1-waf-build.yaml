@@ -1,0 +1,12 @@
+---
+- name: Build the traefik bundle locally
+  hosts: localhost
+  become: false
+  tasks:
+    - name: Build the traefik bundle
+      include_role:
+        name: waf/build
+      vars:
+        traefik_version: 2.11.2
+        arch: amd64
+

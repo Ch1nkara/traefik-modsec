@@ -1,0 +1,14 @@
+---
+disable_waf_checks: false
+
+waf_trigger_word: ARTUR_SUPER_SPECIAL_STRING
+waf_trigger_statuscode: 418
+
+# TODO: multiple webhost support, currently 1:1 with webhosts and ansible hosts
+web_services_hostname: "{{ ansible_fqdn }}"
+
+web_services_http:
+  - 80
+
+web_services_https:
+  - 443

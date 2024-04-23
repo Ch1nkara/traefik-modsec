@@ -1,0 +1,11 @@
+---
+- name: Deploy the traefik bundle to the webserver
+  hosts: "{{ ansible_limit | default(omit) }}"
+  tasks:
+    - name: deploy traefik bundle
+      include_role: 
+        name: waf/deploy
+      vars:
+        centralized_waf_url: http://arkime.12.berylia.org:4444
+        unprivileged_user: www-data
+        bundle_local_path: traefik_bundle.tar.gz
